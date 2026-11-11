@@ -1,0 +1,10 @@
+# Default deny for the efm namespace: nothing may talk to or from a pod unless a policy allows it.
+# Every service brings its own allow-rules through the Helm chart (networkPolicy values).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: efm
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]

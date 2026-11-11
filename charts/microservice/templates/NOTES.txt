@@ -1,0 +1,4 @@
+{{ include "ms.name" . }} {{ .Values.image.tag }} deployed to {{ .Release.Namespace }}.
+{{- if .Values.route.enabled }}
+URL: https://{{ index .Values.route.hostnames 0 }}{{ index .Values.route.pathPrefixes 0 }}
+{{- end }}

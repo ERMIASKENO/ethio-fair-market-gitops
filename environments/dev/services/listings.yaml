@@ -1,0 +1,34 @@
+# listings (Go): classified ads, search, expiry
+name: listings
+team: marketplace
+image:
+  repository: ghcr.io/ermiaskeno/efm-listings
+  tag: main
+env:
+  LOG_LEVEL: info
+  JWT_ISSUER: efm-identity
+  JWT_AUDIENCE: efm
+  JWKS_URL: http://identity/v1/auth/.well-known/jwks.json
+  CATALOG_URL: http://catalog
+  LOCATIONS_URL: http://locations
+  SEED_DEMO_DATA: "true"
+  EXPIRY_INTERVAL: 15m
+secretEnv:
+  - { name: DATABASE_URL, secretName: listings-db, key: url }
+resources:
+  requests: { cpu: 50m, memory: 32Mi }
+  limits: { memory: 128Mi }
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+route:
+  enabled: true
+  pathPrefixes: [/v1/listings]
+networkPolicy:
+  ingress:
+    gateway: true
+    fromApps: [web]
+  egress:
+    postgres: true
+    toApps: [identity, catalog, locations]

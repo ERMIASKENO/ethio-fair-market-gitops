@@ -1,0 +1,22 @@
+# catalog (TypeScript / NestJS): category tree and attribute schemas
+name: catalog
+team: marketplace
+image:
+  repository: ghcr.io/ermiaskeno/efm-catalog
+  tag: main
+resources:
+  requests: { cpu: 25m, memory: 64Mi }
+  limits: { memory: 192Mi }
+probes:
+  startup:
+    httpGet: { path: /healthz, port: http }
+    periodSeconds: 3
+    failureThreshold: 40
+    timeoutSeconds: 2
+route:
+  enabled: true
+  pathPrefixes: [/v1/categories]
+networkPolicy:
+  ingress:
+    gateway: true
+    fromApps: [web, listings]

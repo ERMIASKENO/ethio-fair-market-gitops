@@ -1,0 +1,41 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# prod (example, not deployed yet): highly available PostgreSQL and bigger quotas.
+# Shows how one base is reused with environment specific patches.
+resources:
+  - ../../base
+labels:
+  - pairs:
+      efm.io/environment: prod
+    includeSelectors: false
+patches:
+  - target: { kind: Cluster, name: efm-pg }
+    patch: |-
+      - op: replace
+        path: /spec/instances
+        value: 3
+      - op: replace
+        path: /spec/enablePDB
+        value: true
+      - op: replace
+        path: /spec/storage/size
+        value: 50Gi
+      - op: remove
+        path: /spec/affinity/nodeSelector
+      - op: add
+        path: /spec/affinity/enablePodAntiAffinity
+        value: true
+      - op: replace
+        path: /spec/resources
+        value: { requests: { cpu: 500m, memory: 2Gi }, limits: { memory: 4Gi } }
+  - target: { kind: ResourceQuota, name: efm-quota }
+    patch: |-
+      - op: replace
+        path: /spec/hard/requests.cpu
+        value: "8"
+      - op: replace
+        path: /spec/hard/requests.memory
+        value: 16Gi
+      - op: replace
+        path: /spec/hard/limits.memory
+        value: 32Gi

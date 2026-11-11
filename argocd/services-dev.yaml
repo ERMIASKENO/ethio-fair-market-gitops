@@ -1,0 +1,49 @@
+# One Argo CD Application per file in environments/dev/services/ - add a file, get a deployed service.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: efm-services-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/ERMIASKENO/ethio-fair-market-gitops.git
+        revision: main
+        files:
+          - path: environments/dev/services/*.yaml
+  template:
+    metadata:
+      name: 'efm-dev-{{ .name }}'
+      labels:
+        efm.io/environment: dev
+        efm.io/service: '{{ .name }}'
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: efm
+      source:
+        repoURL: https://github.com/ERMIASKENO/ethio-fair-market-gitops.git
+        targetRevision: main
+        path: charts/microservice
+        helm:
+          releaseName: '{{ .name }}'
+          valueFiles:
+            - ../../environments/dev/values-common.yaml
+            - '../../environments/dev/services/{{ .name }}.yaml'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: efm
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ServerSideApply=true
+        retry:
+          limit: 10
+          backoff: { duration: 15s, factor: 2, maxDuration: 5m }
+      revisionHistoryLimit: 10

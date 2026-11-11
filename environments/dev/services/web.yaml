@@ -1,0 +1,51 @@
+# web (TypeScript / Next.js): the website, server-side rendered
+name: web
+team: frontend
+tier: frontend
+image:
+  repository: ghcr.io/ermiaskeno/efm-web
+  tag: main
+containerPort: 3000
+env:
+  LISTINGS_URL: http://listings
+  CATALOG_URL: http://catalog
+  LOCATIONS_URL: http://locations
+  IDENTITY_URL: http://identity
+  NODE_OPTIONS: --max-old-space-size=192
+probes:
+  startup:
+    httpGet: { path: /healthz, port: http }
+    periodSeconds: 3
+    failureThreshold: 40
+    timeoutSeconds: 2
+  liveness:
+    httpGet: { path: /healthz, port: http }
+    periodSeconds: 15
+    failureThreshold: 3
+    timeoutSeconds: 3
+  readiness:
+    httpGet: { path: /healthz, port: http }
+    periodSeconds: 5
+    failureThreshold: 3
+    timeoutSeconds: 3
+# Next.js writes its fetch/data cache here; the root filesystem stays read-only
+extraVolumes:
+  - name: next-cache
+    emptyDir: { sizeLimit: 256Mi }
+extraVolumeMounts:
+  - { name: next-cache, mountPath: /app/.next/cache }
+resources:
+  requests: { cpu: 50m, memory: 128Mi }
+  limits: { memory: 320Mi }
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+route:
+  enabled: true
+  pathPrefixes: [/]
+networkPolicy:
+  ingress:
+    gateway: true
+  egress:
+    toApps: [listings, catalog, locations, identity]

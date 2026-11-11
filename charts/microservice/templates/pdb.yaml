@@ -1,0 +1,19 @@
+{{- if .Values.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ms.name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ms.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.pdb.minAvailable }}
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ .Values.pdb.maxUnavailable }}
+  {{- end }}
+  unhealthyPodEvictionPolicy: AlwaysAllow   # a crash-looping pod must never block a node drain
+  selector:
+    matchLabels:
+      {{- include "ms.selectorLabels" . | nindent 6 }}
+{{- end }}

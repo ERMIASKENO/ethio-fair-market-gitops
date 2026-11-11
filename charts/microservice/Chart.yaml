@@ -1,0 +1,12 @@
+apiVersion: v2
+name: microservice
+description: >-
+  Generic chart for every ethio-fair-market service: Deployment, Service, ServiceAccount, ConfigMap,
+  HorizontalPodAutoscaler, PodDisruptionBudget, NetworkPolicy, HTTPRoute (Gateway API) and ServiceMonitor.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+kubeVersion: ">=1.33.0-0"   # uses lifecycle.preStop.sleep (GA in 1.33)
+keywords: [ethio-fair-market, microservice]
+maintainers:
+  - name: ERMIASKENO

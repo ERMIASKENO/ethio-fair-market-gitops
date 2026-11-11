@@ -1,0 +1,9 @@
+# Shared values for every service in the dev environment (merged before the service file)
+imagePullSecrets:
+  - name: ghcr-pull           # created by deploy-kit/2-secrets.sh
+route:
+  hostnames: [efm.shop.internal]
+env:
+  LOG_LEVEL: info
+  JWT_ISSUER: efm-identity
+  JWT_AUDIENCE: efm

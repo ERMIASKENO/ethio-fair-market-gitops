@@ -1,0 +1,20 @@
+# efm      : all application services (stateless)
+# efm-data : PostgreSQL for the services (stateful, separated for access control and backups)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: efm
+  labels:
+    # Pod Security Standards: only non-root, no privilege escalation, seccomp, no host access
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: efm-data
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted

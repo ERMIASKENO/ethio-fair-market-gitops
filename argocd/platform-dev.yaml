@@ -1,0 +1,29 @@
+# Platform layer (Kustomize): namespaces, quotas, network policies, PostgreSQL.
+# Wave 0: before the services (wave 1).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: efm-platform-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default            # needs the ResourceQuota that project efm does not allow
+  source:
+    repoURL: https://github.com/ERMIASKENO/ethio-fair-market-gitops.git
+    targetRevision: main
+    path: platform/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - PruneLast=true
+    retry:
+      limit: 10
+      backoff: { duration: 10s, factor: 2, maxDuration: 3m }

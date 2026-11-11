@@ -1,0 +1,31 @@
+# Guard rails for everything of ethio-fair-market: which repo, which namespaces, which cluster-wide kinds.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: efm
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  description: ethio-fair-market marketplace
+  sourceRepos:
+    - https://github.com/ERMIASKENO/ethio-fair-market-gitops.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: efm
+    - server: https://kubernetes.default.svc
+      namespace: efm-data
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: ResourceQuota      # quotas only through the platform app below
+  orphanedResources:
+    warn: true
+  roles:
+    - name: developer
+      description: read everything, sync apps (for future team members)
+      policies:
+        - p, proj:efm:developer, applications, get, efm/*, allow
+        - p, proj:efm:developer, applications, sync, efm/*, allow

@@ -1,0 +1,29 @@
+# Guard rails for the efm namespace: one runaway service cannot eat the whole cluster.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: efm-quota
+  namespace: efm
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 3Gi
+    limits.memory: 6Gi
+    pods: "40"
+    services: "25"
+    persistentvolumeclaims: "0"     # services are stateless; data lives in efm-data
+    services.loadbalancer: "0"      # everything goes through the HTTPS gateway
+    services.nodeports: "0"
+---
+# Defaults for containers that forget to set resources (the chart always sets them).
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: efm-defaults
+  namespace: efm
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 25m, memory: 32Mi }
+      default: { memory: 128Mi }
+      max: { memory: 1Gi }

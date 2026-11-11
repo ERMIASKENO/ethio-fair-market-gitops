@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Platform layer for ethio-fair-market: namespaces, guard rails, zero-trust networking, databases.
+resources:
+  - namespaces.yaml
+  - quota.yaml
+  - networkpolicies.yaml
+  - database/cluster.yaml
+  - database/databases.yaml
+  - database/networkpolicy.yaml
+  - database/podmonitor.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: ethio-fair-market
+      app.kubernetes.io/managed-by: argocd
+    includeSelectors: false

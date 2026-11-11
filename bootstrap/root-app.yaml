@@ -1,0 +1,22 @@
+# The only object applied by hand (deploy-kit/3-argocd.sh). Everything else is created by Argo CD
+# from the argocd/ folder of this repository ("app of apps").
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: efm-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ERMIASKENO/ethio-fair-market-gitops.git
+    targetRevision: main
+    path: argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

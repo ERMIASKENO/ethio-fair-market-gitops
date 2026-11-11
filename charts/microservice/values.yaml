@@ -1,0 +1,153 @@
+# Default values for one ethio-fair-market service.
+# Every service overrides what it needs in environments/<env>/services/<name>.yaml.
+
+# -- service name: used for all object names and the app.kubernetes.io/name label (required)
+name: ""
+# -- part-of / system label
+partOf: ethio-fair-market
+# -- team that owns the service (label, shown in dashboards and alerts)
+team: platform
+# -- tier label: frontend | backend | data
+tier: backend
+
+image:
+  repository: ""        # e.g. ghcr.io/ermiaskeno/efm-identity
+  tag: ""               # set by CI (short git sha)
+  digest: ""            # optional: sha256:... pins the exact image
+  pullPolicy: IfNotPresent
+imagePullSecrets: []    # e.g. [{name: ghcr-pull}]
+
+# -- ignored when autoscaling.enabled=true
+replicaCount: 1
+revisionHistoryLimit: 5
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0   # never go below the desired number of ready pods during a rollout
+minReadySeconds: 5
+progressDeadlineSeconds: 300
+
+containerPort: 8080
+service:
+  type: ClusterIP
+  port: 80
+  appProtocol: http
+
+command: []
+args: []
+
+# -- plain environment variables (name: value)
+env: {}
+# -- environment variables from Secret keys: [{name: DATABASE_URL, secretName: identity-db, key: url}]
+secretEnv: []
+# -- non-secret configuration rendered into a ConfigMap and loaded with envFrom (name: value)
+config: {}
+
+probes:
+  # startup: gives slow starts (migrations, JVM) time before liveness kicks in
+  startup:
+    httpGet: { path: /healthz, port: http }
+    periodSeconds: 3
+    failureThreshold: 40      # up to 2 minutes
+    timeoutSeconds: 2
+  liveness:
+    httpGet: { path: /healthz, port: http }
+    periodSeconds: 15
+    failureThreshold: 3
+    timeoutSeconds: 2
+  readiness:
+    httpGet: { path: /readyz, port: http }
+    periodSeconds: 5
+    failureThreshold: 3
+    timeoutSeconds: 2
+
+resources:
+  requests: { cpu: 25m, memory: 32Mi }
+  limits: { memory: 128Mi }   # no CPU limit on purpose: avoids CPU throttling, requests guarantee fairness
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 0   # 0 = not used
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies: [{ type: Pods, value: 1, periodSeconds: 60 }]
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies: [{ type: Percent, value: 100, periodSeconds: 30 }]
+
+# -- maxUnavailable 1 still allows "kubectl drain" with a single replica
+pdb:
+  enabled: true
+  minAvailable: ""        # set e.g. 1 when running 2+ replicas; takes precedence over maxUnavailable
+  maxUnavailable: 1
+
+serviceAccount:
+  create: true
+  automountToken: false     # the services do not talk to the Kubernetes API
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile: { type: RuntimeDefault }
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  privileged: false
+  capabilities: { drop: [ALL] }
+
+# -- writable /tmp (the root filesystem is read-only)
+tmpDir:
+  enabled: true
+  sizeLimit: 64Mi
+extraVolumes: []
+extraVolumeMounts: []
+
+terminationGracePeriodSeconds: 30
+# -- keep serving for a few seconds after SIGTERM is scheduled, until endpoints are updated everywhere
+preStopSleepSeconds: 5
+
+priorityClassName: ""
+nodeSelector: {}
+tolerations: []
+affinity: {}
+# -- spread replicas over nodes when possible (never blocks scheduling)
+topologySpread:
+  enabled: true
+  maxSkew: 1
+
+# -- Gateway API route on the HTTPS gateway (edge-kit)
+route:
+  enabled: false
+  gateway: { name: edge, namespace: edge, sectionName: https }
+  hostnames: []        # e.g. [efm.shop.internal]
+  pathPrefixes: []     # e.g. [/v1/auth]
+  timeout: 30s
+
+serviceMonitor:
+  enabled: true
+  path: /metrics
+  interval: 60s
+  scrapeTimeout: 10s
+
+networkPolicy:
+  enabled: true
+  ingress:
+    gateway: false       # from the Envoy proxies (envoy-gateway-system)
+    monitoring: true     # from Prometheus (monitoring)
+    fromApps: []         # other services in the same namespace, e.g. [web, listings]
+  egress:
+    dns: true
+    toApps: []           # services this one calls, e.g. [identity, catalog]
+    postgres: false      # PostgreSQL in efm-data
+    internet: false      # HTTPS to the internet (payment/SMS providers later)

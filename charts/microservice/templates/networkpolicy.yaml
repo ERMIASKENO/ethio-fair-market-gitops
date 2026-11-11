@@ -1,0 +1,72 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $np := .Values.networkPolicy }}
+{{- $port := .Values.containerPort }}
+# Zero trust inside the namespace: this pod only accepts traffic from the listed sources
+# and may only open connections to the listed targets (plus DNS).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ms.name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ms.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "ms.selectorLabels" . | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    {{- if $np.ingress.gateway }}
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: envoy-gateway-system }
+      ports: [{ port: {{ $port }}, protocol: TCP }]
+    {{- end }}
+    {{- if $np.ingress.monitoring }}
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: monitoring }
+      ports: [{ port: {{ $port }}, protocol: TCP }]
+    {{- end }}
+    {{- with $np.ingress.fromApps }}
+    - from:
+        {{- range . }}
+        - podSelector:
+            matchLabels: { app.kubernetes.io/name: {{ . }} }
+        {{- end }}
+      ports: [{ port: {{ $port }}, protocol: TCP }]
+    {{- end }}
+  egress:
+    {{- if $np.egress.dns }}
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+          podSelector:
+            matchLabels: { k8s-app: kube-dns }
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    {{- end }}
+    {{- with $np.egress.toApps }}
+    - to:
+        {{- range . }}
+        - podSelector:
+            matchLabels: { app.kubernetes.io/name: {{ . }} }
+        {{- end }}
+    {{- end }}
+    {{- if $np.egress.postgres }}
+    - to:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: efm-data }
+          podSelector:
+            matchLabels: { cnpg.io/cluster: efm-pg }
+      ports: [{ port: 5432, protocol: TCP }]
+    {{- end }}
+    {{- if $np.egress.internet }}
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]
+      ports: [{ port: 443, protocol: TCP }]
+    {{- end }}
+{{- end }}
