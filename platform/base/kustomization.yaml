@@ -9,6 +9,8 @@ resources:
   - database/databases.yaml
   - database/networkpolicy.yaml
   - database/podmonitor.yaml
+  - tunnel/namespace.yaml
+  - tunnel/deployment.yaml
 labels:
   - pairs:
       app.kubernetes.io/part-of: ethio-fair-market

@@ -1,0 +1,95 @@
+# Cloudflare Tunnel: makes the shop reachable from the internet WITHOUT opening a port on the router.
+# cloudflared opens outbound connections to Cloudflare; Cloudflare forwards visitors through them to the
+# HTTPS gateway (192.168.1.240). Which public hostname goes where is configured in the Cloudflare dashboard.
+# The tunnel token lives in Secret cloudflared/cloudflared-token (created by public-kit, never in Git).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+  labels:
+    app.kubernetes.io/name: cloudflared
+    app.kubernetes.io/component: tunnel
+spec:
+  replicas: 2                      # two connectors on different nodes: a node restart does not take the shop offline
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflared
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cloudflared
+        app.kubernetes.io/component: tunnel
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: { app.kubernetes.io/name: cloudflared }
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2026.10.7
+          imagePullPolicy: IfNotPresent
+          args: [tunnel, --no-autoupdate, --metrics, "0.0.0.0:2000", run]
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef: { name: cloudflared-token, key: token }
+          ports:
+            - { name: metrics, containerPort: 2000, protocol: TCP }
+          # /ready returns 200 once at least one connection to Cloudflare is registered
+          startupProbe:
+            httpGet: { path: /ready, port: metrics }
+            periodSeconds: 3
+            failureThreshold: 40
+          livenessProbe:
+            httpGet: { path: /ready, port: metrics }
+            periodSeconds: 15
+            failureThreshold: 4
+          readinessProbe:
+            httpGet: { path: /ready, port: metrics }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels: { app.kubernetes.io/name: cloudflared }
+---
+# tunnel health in Prometheus/Grafana (cloudflared_tunnel_* metrics)
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+spec:
+  selector:
+    matchLabels: { app.kubernetes.io/name: cloudflared }
+  podMetricsEndpoints:
+    - port: metrics
+      interval: 60s

@@ -12,6 +12,7 @@ env:
   LOCATIONS_URL: http://locations
   IDENTITY_URL: http://identity
   NODE_OPTIONS: --max-old-space-size=192
+  DEMO_MODE: "true"           # public demo: banner + noindex (set to false for real launch)
 probes:
   startup:
     httpGet: {path: /healthz, port: http}
