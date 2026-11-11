@@ -3,16 +3,16 @@ name: locations
 team: marketplace
 image:
   repository: ghcr.io/ermiaskeno/efm-locations
-  tag: main
+  tag: a80efb3
 podSecurityContext:
   runAsNonRoot: true
-  runAsUser: 10001          # user created in the image
+  runAsUser: 10001 # user created in the image
   runAsGroup: 10001
   fsGroup: 10001
-  seccompProfile: { type: RuntimeDefault }
+  seccompProfile: {type: RuntimeDefault}
 resources:
-  requests: { cpu: 25m, memory: 64Mi }
-  limits: { memory: 160Mi }
+  requests: {cpu: 25m, memory: 64Mi}
+  limits: {memory: 160Mi}
 route:
   enabled: true
   pathPrefixes: [/v1/locations]

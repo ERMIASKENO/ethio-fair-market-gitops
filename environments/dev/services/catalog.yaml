@@ -3,13 +3,13 @@ name: catalog
 team: marketplace
 image:
   repository: ghcr.io/ermiaskeno/efm-catalog
-  tag: main
+  tag: a80efb3
 resources:
-  requests: { cpu: 25m, memory: 64Mi }
-  limits: { memory: 192Mi }
+  requests: {cpu: 25m, memory: 64Mi}
+  limits: {memory: 192Mi}
 probes:
   startup:
-    httpGet: { path: /healthz, port: http }
+    httpGet: {path: /healthz, port: http}
     periodSeconds: 3
     failureThreshold: 40
     timeoutSeconds: 2

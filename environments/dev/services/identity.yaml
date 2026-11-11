@@ -3,7 +3,7 @@ name: identity
 team: identity
 image:
   repository: ghcr.io/ermiaskeno/efm-identity
-  tag: main                  # CI replaces this with the git sha after every build
+  tag: a80efb3 # CI replaces this with the git sha after every build
 env:
   LOG_LEVEL: info
   JWT_ISSUER: efm-identity
@@ -11,26 +11,26 @@ env:
   JWT_SIGNING_KEY_FILE: /etc/efm/jwt/private.pem
   TOKEN_TTL: 24h
   OTP_TTL: 5m
-  OTP_DEV_MODE: "true"       # no SMS provider yet (phase 2: notifications service) - codes are shown on the login page
+  OTP_DEV_MODE: "true" # no SMS provider yet (phase 2: notifications service) - codes are shown on the login page
   COOKIE_SECURE: "true"
 secretEnv:
-  - { name: DATABASE_URL, secretName: identity-db, key: url }
+  - {name: DATABASE_URL, secretName: identity-db, key: url}
 extraVolumes:
   - name: jwt
     secret:
       secretName: identity-jwt
       defaultMode: 0400
 extraVolumeMounts:
-  - { name: jwt, mountPath: /etc/efm/jwt, readOnly: true }
+  - {name: jwt, mountPath: /etc/efm/jwt, readOnly: true}
 resources:
-  requests: { cpu: 25m, memory: 24Mi }
-  limits: { memory: 96Mi }
+  requests: {cpu: 25m, memory: 24Mi}
+  limits: {memory: 96Mi}
 route:
   enabled: true
   pathPrefixes: [/v1/auth]
 networkPolicy:
   ingress:
     gateway: true
-    fromApps: [web, listings]  # listings fetches the JWKS
+    fromApps: [web, listings] # listings fetches the JWKS
   egress:
     postgres: true
