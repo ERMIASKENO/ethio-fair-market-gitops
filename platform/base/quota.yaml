@@ -12,7 +12,7 @@ spec:
     pods: "40"
     services: "25"
     persistentvolumeclaims: "0"     # services are stateless; data lives in efm-data
-    services.loadbalancer: "0"      # everything goes through the HTTPS gateway
+    services.loadbalancers: "0"      # everything goes through the HTTPS gateway
     services.nodeports: "0"
 ---
 # Defaults for containers that forget to set resources (the chart always sets them).
