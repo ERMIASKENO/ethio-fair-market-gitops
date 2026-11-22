@@ -11,7 +11,7 @@ probes:
   startup:
     httpGet: {path: /healthz, port: http}
     periodSeconds: 3
-    failureThreshold: 40
+    failureThreshold: 30
     timeoutSeconds: 2
 route:
   enabled: true
